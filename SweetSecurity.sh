@@ -49,18 +49,17 @@ cd /home/pi
 
 #Install ElasticSearch
 echo "Installing Elastic Search"
-sudo wget https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.7.1.deb
-sudo dpkg -i elasticsearch-1.7.1.deb
-sudo rm elasticsearch-1.7.1.deb
+sudo wget https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-2.3.2.deb
+sudo dpkg -i elasticsearch-2.3.2.deb
+sudo rm elasticsearch-2.3.2.deb
 sudo update-rc.d elasticsearch defaults
 
 
 #Install LogStash
 echo "Installing Logstash"
-sudo wget https://download.elastic.co/logstash/logstash/logstash-1.5.3.tar.gz
-sudo tar -xzf logstash-1.5.3.tar.gz
-sudo mv logstash-1.5.3/ /opt/logstash/ 
-sudo rm logstash-1.5.3.tar.gz
+sudo wget https://download.elastic.co/logstash/logstash/packages/debian/logstash_2.3.2-1_all.deb
+sudo dpkg -i logstash_2.3.2-1_all.deb
+sudo rm logstash_2.3.2-1_all.deb
 cd /home/pi
 sudo git clone https://github.com/jnr/jffi.git
 cd jffi
@@ -70,22 +69,19 @@ cd /opt/logstash/vendor/jruby/lib
 sudo zip -g jruby-complete-1.7.11.jar jni/arm-Linux/libjffi-1.2.so
 cd /home/pi
 sudo rm -rf jffi/
-sudo cp SweetSecurity/init.d/logstash /etc/init.d
-sudo chmod 755 /etc/init.d/logstash
 sudo update-rc.d logstash defaults
 sudo /opt/logstash/bin/plugin install logstash-filter-translate
-sudo groupadd -r logstash
-sudo useradd -M -r -g logstash -d /var/lib/logstash -s /usr/sbin/nologin -c "LogStash Service User" logstash
-sudo cp SweetSecurity/logstash.conf /opt/logstash/
-sudo mkdir /opt/logstash/custom_patterns
-sudo cp SweetSecurity/bro.rule /opt/logstash/custom_patterns
-
+sudo cp SweetSecurity/logstash.conf /etc/logstash/conf.d
+sudo mkdir /etc/logstash/custom_patterns
+sudo cp SweetSecurity/bro.rule /etc/logstash/custom_patterns
+sudo mkdir /etc/logstash/translate
 
 #Install Kibana
 echo "Installing Kibana"
-sudo wget https://download.elastic.co/kibana/kibana/kibana-4.1.0-linux-x86.tar.gz
-sudo tar -xzf kibana-4.1.0-linux-x86.tar.gz
-sudo mv kibana-4.1.0-linux-x86/ /opt/kibana/
+sudo wget https://download.elastic.co/kibana/kibana/kibana-4.5.0-linux-x86.tar.gz
+sudo tar -xzf kibana-4.5.0-linux-x86.tar.gz
+sudo mv kibana-4.5.0-linux-x86/ /opt/kibana/
+sudo apt-get -y remove nodejs-legacy nodejs nodered		#Remove nodejs on Pi3
 sudo wget http://node-arm.herokuapp.com/node_latest_armhf.deb
 sudo dpkg -i node_latest_armhf.deb
 sudo mv /opt/kibana/node/bin/node /opt/kibana/node/bin/node.orig
@@ -120,3 +116,16 @@ sudo sed -i -- "s/SMTP_HOST/"$smtpHost"/g" /opt/SweetSecurity/networkDiscovery.p
 sudo sed -i -- "s/SMTP_PORT/"$smtpPort"/g" /opt/SweetSecurity/networkDiscovery.py
 sudo sed -i -- "s/EMAIL_USER/"$emailAddr"/g" /opt/SweetSecurity/networkDiscovery.py
 sudo sed -i -- "s/EMAIL_PASS/"$emailPwd"/g" /opt/SweetSecurity/networkDiscovery.py
+
+
+#Restart services
+echo "Restarting ELK services"
+sudo service elasticsearch restart
+sudo service kibana restart
+sudo service logstash restart
+
+
+#Deploy and start BroIDS
+echo "Deploying and starting BroIDS"
+sudo /opt/nsm/bro/bin/broctl deploy
+sudo /opt/nsm/bro/bin/broctl start
